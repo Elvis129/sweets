@@ -1,0 +1,73 @@
+name: sweet_billions
+description: A candy-themed slot machine game built with Flutter and Flame.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.14.0
+  provider: ^6.1.1
+  shared_preferences: ^2.2.2
+  audioplayers: ^5.2.1
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.9
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/images/icons/logo.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/icons/logo.png"
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    # Game backgrounds
+    - assets/backgrounds/
+    - assets/backgrounds/caramel_mountains.png
+    - assets/backgrounds/chocolate_river_valley.png
+    - assets/backgrounds/cotton_candy_sky_islands.png
+    - assets/backgrounds/dark_candy_dungeon.png
+    - assets/backgrounds/enchanted_candy_forest.png
+    - assets/backgrounds/futuristic_neon_candy_city.png
+    - assets/backgrounds/gingerbread_village.png
+    - assets/backgrounds/jelly_ocean_coast.png
+    - assets/backgrounds/steampunk_candy_world.png
+
+    # Game symbols and icons
+    - assets/images/symbols/
+    - assets/images/symbols/candy.png
+    - assets/images/symbols/cherry.png
+    - assets/images/symbols/grapes.png
+    - assets/images/symbols/gummy.png
+    - assets/images/symbols/jelly.png
+    - assets/images/symbols/lollipop.png
+    - assets/images/symbols/orange_candy.png
+    - assets/images/symbols/orange.png
+    - assets/images/symbols/strawberry.png
+    - assets/images/symbols/watermelon.png
+    - assets/images/icons/
+    - assets/images/icons/logo.png
+    - assets/images/icons/button_refresh.png
+
+    # Audio assets
+    - assets/music/
+    - assets/music/candy_wonderland.mp3
+    - assets/sounds/
+    - assets/sounds/click.mp3
+    - assets/sounds/credits_gained.mp3
+    - assets/sounds/lose.mp3
+    - assets/sounds/spin_start1.mp3
+    - assets/sounds/win.mp3 
