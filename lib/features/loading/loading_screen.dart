@@ -21,6 +21,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
     _startLoading();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Ensure music is stopped when LoadingScreen is shown
+    final gameState = Provider.of<GameStateProvider>(context, listen: false);
+    gameState.audioService.stopBackgroundMusic();
+  }
+
   Future<void> _startLoading() async {
     // Simulate asset loading with incremental progress
     for (int i = 0; i < 5; i++) {

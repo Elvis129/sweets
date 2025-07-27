@@ -13,6 +13,10 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<GameStateProvider>(
       builder: (context, gameState, child) {
+        // Resume music if enabled
+        if (gameState.musicEnabled) {
+          gameState.audioService.playBackgroundMusic();
+        }
         return Scaffold(
           body: Container(
             decoration: BoxDecoration(

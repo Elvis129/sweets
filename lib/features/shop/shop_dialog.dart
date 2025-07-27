@@ -323,7 +323,7 @@ class _BackgroundItem extends StatelessWidget {
                         name,
                         style: const TextStyle(
                           color: AppTheme.textWhite,
-                          fontSize: 13,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
                         maxLines: 1,

@@ -13,9 +13,22 @@ class AudioService {
   static GlobalKey<NavigatorState>? navigatorKey;
 
   static Future<AudioService> initialize() async {
-    _musicPlayer = AudioPlayer()
-      ..setReleaseMode(ReleaseMode.loop)
-      ..setPlayerMode(PlayerMode.lowLatency);
+    _musicPlayer = AudioPlayer();
+    await _musicPlayer.setAudioContext(AudioContext(
+      android: const AudioContextAndroid(
+        isSpeakerphoneOn: false,
+        stayAwake: false,
+        contentType: AndroidContentType.music,
+        usageType: AndroidUsageType.media,
+        audioFocus: AndroidAudioFocus.none,
+      ),
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playback,
+        options: const {AVAudioSessionOptions.mixWithOthers},
+      ),
+    ));
+    await _musicPlayer.setReleaseMode(ReleaseMode.loop);
+    await _musicPlayer.setPlayerMode(PlayerMode.mediaPlayer);
     return AudioService();
   }
 
@@ -31,9 +44,22 @@ class AudioService {
     }
 
     // Create a new player for this sound
-    final player = AudioPlayer()
-      ..setReleaseMode(ReleaseMode.release)
-      ..setPlayerMode(PlayerMode.lowLatency);
+    final player = AudioPlayer();
+    await player.setAudioContext(AudioContext(
+      android: const AudioContextAndroid(
+        isSpeakerphoneOn: false,
+        stayAwake: false,
+        contentType: AndroidContentType.sonification,
+        usageType: AndroidUsageType.assistanceSonification,
+        audioFocus: AndroidAudioFocus.none,
+      ),
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playback,
+        options: const {AVAudioSessionOptions.mixWithOthers},
+      ),
+    ));
+    await player.setReleaseMode(ReleaseMode.release);
+    await player.setPlayerMode(PlayerMode.lowLatency);
     _soundPlayers[soundName] = player;
     return player;
   }
