@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_theme.dart';
+
 import '../../core/providers/game_state_provider.dart';
+import '../../core/theme/app_theme.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -52,20 +54,20 @@ class _LoadingScreenState extends State<LoadingScreen> {
         child: Container(
           decoration: BoxDecoration(
             color: Colors.black
-                .withOpacity(0.5), // Затемнення для кращої читабельності
+                .withValues(alpha: 0.5), // Darkening for better readability
           ),
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Sweet Billions',
-                  style: TextStyle(
+                  style: GoogleFonts.bubblegumSans(
                     color: AppTheme.textWhite,
                     fontSize: 48,
                     fontWeight: FontWeight.bold,
                     shadows: [
-                      Shadow(
+                      const Shadow(
                         color: Colors.black,
                         offset: Offset(2, 2),
                         blurRadius: 4,
@@ -80,7 +82,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: .3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -101,11 +103,11 @@ class _LoadingScreenState extends State<LoadingScreen> {
                 const SizedBox(height: 24),
                 Text(
                   'Loading... ${(_progress * 100).toInt()}%',
-                  style: const TextStyle(
+                  style: GoogleFonts.bubblegumSans(
                     color: AppTheme.textWhite,
                     fontSize: 16,
                     shadows: [
-                      Shadow(
+                      const Shadow(
                         color: Colors.black,
                         offset: Offset(1, 1),
                         blurRadius: 2,

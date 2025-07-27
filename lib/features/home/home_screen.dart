@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/providers/game_state_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../settings/settings_dialog.dart';
@@ -27,43 +27,16 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Top section with credits
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            'Credits: ${gameState.credits.toStringAsFixed(1)}',
-                            style: const TextStyle(
-                              color: AppTheme.textWhite,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
+                  Container(),
                   // Game title
-                  const Text(
+                  Text(
                     'Sweet Billions',
-                    style: TextStyle(
+                    style: GoogleFonts.bubblegumSans(
                       color: AppTheme.textWhite,
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
                       shadows: [
-                        Shadow(
+                        const Shadow(
                           color: Colors.black54,
                           offset: Offset(2, 2),
                           blurRadius: 4,
@@ -85,7 +58,13 @@ class HomeScreen extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(200, 60),
                           ),
-                          child: const Text('PLAY'),
+                          child: Text(
+                            'PLAY',
+                            style: GoogleFonts.bubblegumSans(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton(
@@ -102,16 +81,24 @@ class HomeScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          child: const Text(
+                          child: Text(
                             'SHOP',
-                            style: TextStyle(
+                            style: GoogleFonts.bubblegumSans(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        IconButton(
+                      ],
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: IconButton(
                           icon: const Icon(
                             Icons.settings,
                             color: Colors.white,
@@ -124,8 +111,8 @@ class HomeScreen extends StatelessWidget {
                             );
                           },
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),

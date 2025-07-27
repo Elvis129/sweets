@@ -18,7 +18,7 @@ class AppTheme {
         secondary: secondaryBlue,
         surface: backgroundPurple,
       ),
-      textTheme: GoogleFonts.poppinsTextTheme().copyWith(
+      textTheme: GoogleFonts.bubblegumSansTextTheme().copyWith(
         displayLarge: const TextStyle(
           color: textWhite,
           fontSize: 32,

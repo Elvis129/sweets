@@ -1,4 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/material.dart';
+import 'toast_service.dart';
 
 class AudioService {
   static late AudioPlayer _musicPlayer;
@@ -6,6 +8,9 @@ class AudioService {
   bool _isMusicReady = false;
   bool _soundEnabled = true;
   bool _musicEnabled = true;
+
+  // Global key for accessing context
+  static GlobalKey<NavigatorState>? navigatorKey;
 
   static Future<AudioService> initialize() async {
     _musicPlayer = AudioPlayer()
@@ -21,7 +26,7 @@ class AudioService {
         final existingPlayer = _soundPlayers[soundName]!;
         await existingPlayer.dispose();
       } catch (e) {
-        print('Error disposing existing player for $soundName: $e');
+        _showErrorToast('Error disposing existing player for $soundName: $e');
       }
     }
 
@@ -44,7 +49,7 @@ class AudioService {
       }
       await _musicPlayer.resume();
     } catch (e) {
-      print('Error playing background music: $e');
+      _showErrorToast('Error playing background music: $e');
       _isMusicReady = false;
       // Try to recreate music player on error
       try {
@@ -53,7 +58,7 @@ class AudioService {
           ..setReleaseMode(ReleaseMode.loop)
           ..setPlayerMode(PlayerMode.lowLatency);
       } catch (e2) {
-        print('Error recreating music player: $e2');
+        _showErrorToast('Error recreating music player: $e2');
       }
     }
   }
@@ -64,7 +69,7 @@ class AudioService {
         await _musicPlayer.pause();
       }
     } catch (e) {
-      print('Error stopping background music: $e');
+      _showErrorToast('Error stopping background music: $e');
     }
   }
 
@@ -72,7 +77,7 @@ class AudioService {
     try {
       await _musicPlayer.setVolume(volume);
     } catch (e) {
-      print('Error setting music volume: $e');
+      _showErrorToast('Error setting music volume: $e');
     }
   }
 
@@ -93,11 +98,11 @@ class AudioService {
           await player.dispose();
           _soundPlayers.remove(soundName);
         } catch (e) {
-          print('Error disposing player after completion: $e');
+          _showErrorToast('Error disposing player after completion: $e');
         }
       });
     } catch (e) {
-      print('Error playing sound $soundName: $e');
+      _showErrorToast('Error playing sound $soundName: $e');
       // Remove the failed player
       _soundPlayers.remove(soundName);
     }
@@ -108,7 +113,7 @@ class AudioService {
       try {
         await player.setVolume(volume);
       } catch (e) {
-        print('Error setting sound volume: $e');
+        _showErrorToast('Error setting sound volume: $e');
       }
     }
   }
@@ -121,7 +126,7 @@ class AudioService {
         try {
           player.dispose();
         } catch (e) {
-          print('Error disposing sound player: $e');
+          _showErrorToast('Error disposing sound player: $e');
         }
       }
       _soundPlayers.clear();
@@ -147,7 +152,7 @@ class AudioService {
       _soundPlayers.clear();
       _isMusicReady = false;
     } catch (e) {
-      print('Error disposing audio service: $e');
+      _showErrorToast('Error disposing audio service: $e');
     }
   }
 
@@ -157,4 +162,11 @@ class AudioService {
   static const String winSound = 'win';
   static const String loseSound = 'lose';
   static const String creditsGainedSound = 'credits_gained';
+
+  // Helper method to show error toast
+  void _showErrorToast(String message) {
+    if (navigatorKey?.currentContext != null) {
+      ToastService.showError(navigatorKey!.currentContext!, message);
+    }
+  }
 }

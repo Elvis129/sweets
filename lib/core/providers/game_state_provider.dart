@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
+import '../services/toast_service.dart';
 
 class GameStateProvider extends ChangeNotifier {
   final StorageService storageService;
   final AudioService audioService;
+
+  // Global key for accessing context
+  static GlobalKey<NavigatorState>? navigatorKey;
 
   double _credits = 1000;
   bool _isSpinning = false;
@@ -89,7 +92,7 @@ class GameStateProvider extends ChangeNotifier {
       try {
         await audioService.playSound(AudioService.creditsGainedSound);
       } catch (e) {
-        print('Error playing credits gained sound: $e');
+        _showErrorToast('Error playing credits gained sound: $e');
       }
     }
     notifyListeners();
@@ -145,7 +148,7 @@ class GameStateProvider extends ChangeNotifier {
     }
   }
 
-  // Оновлюємо метод для зняття ставки
+  // Updated method for deducting bet
   Future<void> deductBet() async {
     if (_credits >= _currentBet) {
       _credits -= _currentBet;
@@ -153,7 +156,7 @@ class GameStateProvider extends ChangeNotifier {
     }
   }
 
-  // Оновлюємо метод для нарахування виграшу з урахуванням ставки
+  // Updated method for adding winnings with bet consideration
   Future<void> addWinnings(double multiplier) async {
     final winAmount = _currentBet * multiplier;
     _credits += winAmount;
@@ -180,7 +183,7 @@ class GameStateProvider extends ChangeNotifier {
       await deductCredits(cost);
       _unlockedBackgrounds.add(backgroundId);
       await storageService.unlockBackground(backgroundId);
-      // Автоматично вибираємо новий фон після покупки
+      // Automatically select new background after purchase
       _selectedBackground = backgroundId;
       await storageService.setSelectedBackground(backgroundId);
       notifyListeners();
@@ -217,5 +220,12 @@ class GameStateProvider extends ChangeNotifier {
   void dispose() {
     audioService.dispose();
     super.dispose();
+  }
+
+  // Helper method to show error toast
+  void _showErrorToast(String message) {
+    if (navigatorKey?.currentContext != null) {
+      ToastService.showError(navigatorKey!.currentContext!, message);
+    }
   }
 }

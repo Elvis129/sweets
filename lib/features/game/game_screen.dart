@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../core/providers/game_state_provider.dart';
-import 'sweet_billions_game.dart';
 import 'package:flame/game.dart';
-import 'bet_settings_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/providers/game_state_provider.dart';
 import '../settings/settings_dialog.dart';
+import 'bet_settings_dialog.dart';
 import 'rules_dialog.dart';
+import 'sweet_billions_game.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -20,11 +21,14 @@ class _GameScreenState extends State<GameScreen>
   late final AnimationController _animationController;
   bool _isInitialAnimationComplete = false;
   bool _isGameVisible = true;
+  late SweetBillionsGame _game; // Add variable
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _game = SweetBillionsGame();
+    _game.pauseGame();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -51,12 +55,12 @@ class _GameScreenState extends State<GameScreen>
   Widget build(BuildContext context) {
     return Consumer<GameStateProvider>(
       builder: (context, gameState, child) {
-        return WillPopScope(
-          onWillPop: () async {
-            if (!gameState.isSpinning) {
+        return PopScope(
+          canPop: false,
+          onPopInvoked: (didPop) async {
+            if (!didPop && !gameState.isSpinning) {
               Navigator.pushReplacementNamed(context, '/home');
             }
-            return false;
           },
           child: Scaffold(
             body: Container(
@@ -104,21 +108,7 @@ class _GameScreenState extends State<GameScreen>
                               gameFactory: () =>
                                   SweetBillionsGame()..setGameState(gameState),
                             ),
-                          )
-                          // : FadeTransition(
-                          //     opacity: CurvedAnimation(
-                          //       parent: _animationController,
-                          //       curve: const Interval(0.3, 1.0),
-                          //     ),
-                          //     child: ClipRRect(
-                          //       borderRadius: BorderRadius.circular(20),
-                          //       child: GameWidget.controlled(
-                          //         gameFactory: () => SweetBillionsGame()
-                          //           ..setGameState(gameState),
-                          //       ),
-                          //     ),
-                          //   ),
-                          ),
+                          )),
                     ),
 
                     // Bottom panel
@@ -128,12 +118,12 @@ class _GameScreenState extends State<GameScreen>
                         children: [
                           Text(
                             gameState.gameStatusText,
-                            style: const TextStyle(
+                            style: GoogleFonts.bubblegumSans(
                               color: Colors.white,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                               shadows: [
-                                Shadow(
+                                const Shadow(
                                   color: Colors.black,
                                   offset: Offset(2, 2),
                                   blurRadius: 4,
@@ -149,7 +139,7 @@ class _GameScreenState extends State<GameScreen>
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const SizedBox(
-                                  width: 60,
+                                  width: 100,
                                   height: 60,
                                 ),
                                 // Spin button
@@ -159,6 +149,11 @@ class _GameScreenState extends State<GameScreen>
                                         gameState.credits >=
                                             gameState.currentBet) {
                                       gameState.setButtonScale(0.9);
+                                      // Play spin start sound
+                                      if (gameState.soundEnabled) {
+                                        gameState.audioService
+                                            .playSound('spin_start1');
+                                      }
                                     }
                                   },
                                   onTapUp: (_) {
@@ -166,6 +161,7 @@ class _GameScreenState extends State<GameScreen>
                                         gameState.credits >=
                                             gameState.currentBet) {
                                       gameState.setButtonScale(1.0);
+                                      _game.resumeGame();
                                       SweetBillionsGame.spin();
                                     }
                                   },
@@ -241,12 +237,12 @@ class _GameScreenState extends State<GameScreen>
                               ),
                               Text(
                                 'CREDIT: ${gameState.credits.toInt()}',
-                                style: const TextStyle(
+                                style: GoogleFonts.bubblegumSans(
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   shadows: [
-                                    Shadow(
+                                    const Shadow(
                                       color: Colors.black26,
                                       offset: Offset(1, 1),
                                       blurRadius: 2,
@@ -256,12 +252,12 @@ class _GameScreenState extends State<GameScreen>
                               ),
                               Text(
                                 '    BET: ${gameState.currentBet}',
-                                style: const TextStyle(
+                                style: GoogleFonts.bubblegumSans(
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   shadows: [
-                                    Shadow(
+                                    const Shadow(
                                       color: Colors.black26,
                                       offset: Offset(1, 1),
                                       blurRadius: 2,
@@ -325,7 +321,7 @@ class _GameScreenState extends State<GameScreen>
       children: [
         Text(
           'SWEET BILLIONS',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.bubblegumSans(
             fontSize: 40,
             fontWeight: FontWeight.bold,
             foreground: Paint()
@@ -344,7 +340,7 @@ class _GameScreenState extends State<GameScreen>
           ).createShader(bounds),
           child: Text(
             'SWEET BILLIONS',
-            style: GoogleFonts.fredoka(
+            style: GoogleFonts.bubblegumSans(
               fontSize: 40,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -371,7 +367,7 @@ class _GameScreenState extends State<GameScreen>
         children: [
           Text(
             'SWEET BILLIONS',
-            style: GoogleFonts.fredoka(
+            style: GoogleFonts.bubblegumSans(
               fontSize: 40,
               fontWeight: FontWeight.bold,
               foreground: Paint()
@@ -390,7 +386,7 @@ class _GameScreenState extends State<GameScreen>
             ).createShader(bounds),
             child: Text(
               'SWEET BILLIONS',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.bubblegumSans(
                 fontSize: 40,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,

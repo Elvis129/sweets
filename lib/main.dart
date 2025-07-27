@@ -40,9 +40,17 @@ class SweetBillionsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Create global navigator key for toast access
+    final navigatorKey = GlobalKey<NavigatorState>();
+
+    // Set global keys for services
+    AudioService.navigatorKey = navigatorKey;
+    GameStateProvider.navigatorKey = navigatorKey;
+
     return MaterialApp(
       title: 'Sweet Billions',
       theme: AppTheme.lightTheme,
+      navigatorKey: navigatorKey,
       initialRoute: '/loading',
       routes: {
         '/loading': (context) => const LoadingScreen(),

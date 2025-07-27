@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
 
 class RulesDialog extends StatelessWidget {
   const RulesDialog({super.key});
@@ -7,10 +6,10 @@ class RulesDialog extends StatelessWidget {
   Widget _buildSymbolRule({
     required String symbol,
     required List<String> multipliers,
-    double size = 50, // Зменшили розмір з 60 до 50
+    double size = 50, // Reduced size from 60 to 50
   }) {
     return SizedBox(
-      width: 120, // Зменшили ширину з 140 до 120
+      width: 120, // Reduced width from 140 to 120
       child: Column(
         children: [
           Image.asset(
@@ -18,14 +17,14 @@ class RulesDialog extends StatelessWidget {
             width: size,
             height: size,
           ),
-          const SizedBox(height: 4), // Зменшили відступ з 8 до 4
+          const SizedBox(height: 4), // Reduced spacing from 8 to 4
           Column(
             children: [
               Text(
                 '7: x${multipliers[0]}',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 12, // Зменшили шрифт з 14 до 12
+                  fontSize: 12, // Reduced font size from 14 to 12
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -57,8 +56,8 @@ class RulesDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
-        width: 300, // Фіксована ширина діалогу
-        padding: const EdgeInsets.all(16), // Зменшили padding з 24 до 16
+        width: 300, // Fixed dialog width
+        padding: const EdgeInsets.all(16), // Reduced padding from 24 to 16
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(20),
@@ -94,7 +93,7 @@ class RulesDialog extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16), // Зменшили відступ з 24 до 16
+              const SizedBox(height: 16), // Reduced spacing from 24 to 16
 
               // Symbols grid
               Row(
@@ -104,7 +103,7 @@ class RulesDialog extends StatelessWidget {
                     symbol: 'candy',
                     multipliers: ['0.5', '1.2', '1.4'],
                   ),
-                  const SizedBox(width: 12), // Зменшили відступ з 20 до 12
+                  const SizedBox(width: 12), // Reduced spacing from 20 to 12
                   _buildSymbolRule(
                     symbol: 'orange',
                     multipliers: ['0.7', '1.3', '1.4'],

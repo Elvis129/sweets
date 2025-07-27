@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:async';
+import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -10,20 +10,16 @@ import '../../core/providers/game_state_provider.dart';
 
 class EmptyCell extends PositionComponent {
   EmptyCell({required Vector2 position, required Vector2 size}) {
-    this.position = Vector2(
-      position.x + size.x / 2,
-      position.y + size.y / 2,
-    );
+    this.position = position;
     this.size = size;
-    anchor = Anchor.center;
   }
 
   @override
   void render(Canvas canvas) {
-    final rect = Rect.fromLTWH(-size.x / 2, -size.y / 2, size.x, size.y);
+    final rect = Rect.fromLTWH(0, 0, size.x, size.y);
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(12));
     final paint = Paint()
-      ..color = Colors.black.withOpacity(0.5)
+      ..color = Colors.black.withValues(alpha: 0.5)
       ..style = PaintingStyle.fill;
     canvas.drawRRect(rrect, paint);
   }
@@ -33,104 +29,82 @@ class SymbolComponent extends PositionComponent {
   Sprite sprite;
   Vector2 targetPosition;
   bool isAnimating = true;
-  bool isRemoving = false;
+  bool isVanishing = false;
   double animationProgress = 0.0;
-  double _opacity = 1.0;
-  Function? onRemoveComplete;
-  bool _hasCalledComplete = false;
+  double vanishScale = 1.0;
+  double opacity = 1.0;
 
   SymbolComponent({
     required this.sprite,
     required Vector2 position,
     required Vector2 size,
     required this.targetPosition,
-  }) {
-    this.position = Vector2(
-      position.x + size.x / 2,
-      position.y + size.y / 2,
-    );
-    this.size = size;
-    scale = Vector2.all(1.0);
-    anchor = Anchor.center;
-  }
+  }) : super(position: position, size: size);
 
-  double lerp(double start, double end, double t) {
-    return start + (end - start) * t;
+  void startVanishingAnimation() {
+    isVanishing = true;
+    animationProgress = 0.0;
   }
 
   @override
   void update(double dt) {
-    super.update(dt);
-
-    if (isRemoving) {
-      // Проста анімація зникнення
-      animationProgress = min(1.0, animationProgress + dt * 4);
-      _opacity = max(0, 1 - animationProgress);
-
-      if (animationProgress >= 1.0) {
-        if (onRemoveComplete != null && !_hasCalledComplete) {
-          _hasCalledComplete = true;
-          onRemoveComplete!();
-        }
-        removeFromParent();
-      }
+    if (isVanishing) {
+      // Vanishing animation
+      animationProgress = (animationProgress + dt * 2.0).clamp(0.0, 1.0);
+      vanishScale = 1.0 - animationProgress;
+      opacity = 1.0 - animationProgress;
     } else if (isAnimating) {
-      // Анімація падіння
-      animationProgress =
-          min(1.0, animationProgress + dt * 8); // Прискорили падіння
-
-      position = Vector2(
-        targetPosition.x + size.x / 2,
-        lerp(position.y, targetPosition.y + size.y / 2, animationProgress),
-      );
+      // Regular falling animation
+      animationProgress = (animationProgress + dt * 5.0).clamp(0.0, 1.0);
+      double t = animationProgress * animationProgress;
+      position.x = lerpDouble(position.x, targetPosition.x, t)!;
+      position.y = lerpDouble(position.y, targetPosition.y, t)!;
 
       if (animationProgress >= 1.0) {
         isAnimating = false;
-        position = Vector2(
-          targetPosition.x + size.x / 2,
-          targetPosition.y + size.y / 2,
-        );
       }
     }
   }
 
   @override
   void render(Canvas canvas) {
-    canvas.save();
+    if (isVanishing) {
+      // Save current canvas state
+      canvas.save();
 
-    // Малюємо фон символу
-    final rect = Rect.fromLTWH(-size.x / 2, -size.y / 2, size.x, size.y);
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(12));
-    final paint = Paint()
-      ..color = Colors.black.withOpacity(0.5 * _opacity)
-      ..style = PaintingStyle.fill;
-    canvas.drawRRect(rrect, paint);
+      // Set transparency
+      canvas.translate(size.x / 2, size.y / 2);
+      canvas.scale(vanishScale, vanishScale);
+      canvas.translate(-size.x / 2, -size.y / 2);
 
-    // Малюємо символ
-    final padding = size.x * 0.01;
-    final symbolRect = Rect.fromLTWH(
-      -size.x / 2 + padding,
-      -size.y / 2 + padding,
-      size.x - (padding * 2),
-      size.y - (padding * 2),
-    );
+      sprite.render(
+        canvas,
+        position: Vector2.zero(),
+        size: size,
+        overridePaint: Paint()..color = Colors.white.withValues(alpha: opacity),
+      );
 
-    final spritePaint = Paint()
-      ..color = Colors.white.withOpacity(_opacity)
-      ..filterQuality = FilterQuality.high;
+      // Restore canvas state
+      canvas.restore();
+    } else {
+      sprite.render(
+        canvas,
+        position: Vector2.zero(),
+        size: size,
+      );
+    }
+  }
 
-    sprite.render(
-      canvas,
-      position: Vector2(symbolRect.left, symbolRect.top),
-      size: Vector2(symbolRect.width, symbolRect.height),
-      overridePaint: spritePaint,
-    );
-
-    canvas.restore();
+  void startAnimation() {
+    isAnimating = true;
+    animationProgress = 0.0;
   }
 }
 
 class SweetBillionsGame extends FlameGame with TapDetector {
+  // Variable to store the last game status
+  String lastGameStatus = 'PLACE YOUR BETS!';
+
   static SweetBillionsGame? _instance;
   bool _isPaused = false;
 
@@ -163,11 +137,6 @@ class SweetBillionsGame extends FlameGame with TapDetector {
     }
   }
 
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-  }
-
   void pauseGame() {
     _isPaused = true;
   }
@@ -191,7 +160,7 @@ class SweetBillionsGame extends FlameGame with TapDetector {
   Future<void> onLoad() async {
     initializeGrid();
     createEmptyGrid();
-    loadSymbolsAndFill(); // Не чекаємо завершення
+    loadSymbolsAndFill(); // Don't wait for completion
   }
 
   void initializeGrid() {
@@ -214,7 +183,7 @@ class SweetBillionsGame extends FlameGame with TapDetector {
     gridWidth = (cellSize * gridCols) + (spacing * (gridCols - 1));
     gridHeight = (cellSize * gridRows) + (spacing * (gridRows - 1));
 
-    // Центруємо всю сітку на екрані
+    // Center the entire grid on screen
     gridPosition = Vector2(
       (screenWidth - gridWidth) / 2,
       (screenHeight - gridHeight) / 3,
@@ -255,8 +224,8 @@ class SweetBillionsGame extends FlameGame with TapDetector {
     for (var row = 0; row < gridRows; row++) {
       for (var col = 0; col < gridCols; col++) {
         final position = Vector2(
-          gridPosition.x + (col * (cellSize + spacing)) + cellSize / 2,
-          gridPosition.y + (row * (cellSize + spacing)) + cellSize / 2,
+          gridPosition.x + (col * (cellSize + spacing)),
+          gridPosition.y + (row * (cellSize + spacing)),
         );
         final emptyCell = EmptyCell(
           position: position,
@@ -270,36 +239,48 @@ class SweetBillionsGame extends FlameGame with TapDetector {
 
   Future<void> fillGridWithSymbols() async {
     grid = List.generate(
-        gridRows, (row) => List.generate(gridCols, (col) => null));
+      gridRows,
+      (row) => List.generate(gridCols, (col) => null),
+    );
 
+    // Fill each column one by one
     for (var col = 0; col < gridCols; col++) {
+      // Fill column from bottom to top
       for (var row = gridRows - 1; row >= 0; row--) {
-        await Future.delayed(Duration(milliseconds: 50 * col));
         final startPosition = Vector2(
-          gridPosition.x + (col * (cellSize + spacing)) + cellSize / 2,
-          gridPosition.y - cellSize,
+          gridPosition.x + (col * (cellSize + spacing)),
+          gridPosition.y - cellSize * (gridRows - row),
         );
+
         final targetPosition = Vector2(
-          gridPosition.x + (col * (cellSize + spacing)) + cellSize / 2,
-          gridPosition.y + (row * (cellSize + spacing)) + cellSize / 2,
+          gridPosition.x + (col * (cellSize + spacing)),
+          gridPosition.y + (row * (cellSize + spacing)),
         );
+
         final symbol = SymbolComponent(
           sprite: symbols[random.nextInt(symbols.length)],
           position: startPosition,
           size: Vector2(cellSize, cellSize),
           targetPosition: targetPosition,
         );
+
+        symbol.isAnimating = true;
+        symbol.animationProgress = 0.0;
+
         grid[row][col] = symbol;
         add(symbol);
+
+        // Delay between symbols in column
+        await Future.delayed(const Duration(milliseconds: 5));
       }
+
+      // Delay between columns
+      await Future.delayed(const Duration(milliseconds: 1));
     }
   }
 
   Future<void> removeWinningSymbols(List<List<bool>> winningPositions) async {
-    bool hasRemovedSymbols = false;
     int symbolsToRemove = 0;
-    int removedSymbols = 0;
-    final completer = Completer<void>();
 
     // Count symbols to remove
     for (var row = 0; row < gridRows; row++) {
@@ -310,21 +291,12 @@ class SweetBillionsGame extends FlameGame with TapDetector {
       }
     }
 
-    if (symbolsToRemove == 0) {
-      return;
-    }
+    if (symbolsToRemove == 0) return;
 
-    // Calculate win multiplier based on matches
-    double multiplier = 0.0;
-    if (symbolsToRemove >= 8)
-      multiplier = 20.0;
-    else if (symbolsToRemove >= 6)
-      multiplier = 10.0;
-    else if (symbolsToRemove >= 4)
-      multiplier = 4.0;
-    else if (symbolsToRemove >= 3) multiplier = 2.0;
+    // Calculate win multiplier
+    double multiplier = calculateWinMultiplier(winningPositions);
 
-    // Play win sound and add credits
+    // Play sound and add credits
     if (multiplier > 0) {
       if (gameState.soundEnabled) {
         gameState.audioService.playSound('win');
@@ -334,42 +306,19 @@ class SweetBillionsGame extends FlameGame with TapDetector {
           .setGameStatusText('YOU WON: ${multiplier.toStringAsFixed(0)}x!');
     }
 
-    // Start removing symbols
-    for (var row = 0; row < gridRows; row++) {
-      for (var col = 0; col < gridCols; col++) {
-        if (winningPositions[row][col] && grid[row][col] != null) {
-          final symbol = grid[row][col]!;
-          hasRemovedSymbols = true;
+    // First, completely finish the vanishing animation
+    await animateWinningSymbols(winningPositions);
 
-          symbol.onRemoveComplete = () {
-            removedSymbols++;
-            if (removedSymbols >= symbolsToRemove && !completer.isCompleted) {
-              completer.complete();
-            }
-          };
+    // Wait additional moment for certainty
+    await Future.delayed(const Duration(milliseconds: 200));
 
-          symbol.isRemoving = true;
-          grid[row][col] = null;
-        }
-      }
-    }
+    // Only after that start symbol dropping
+    await dropSymbolsAfterRemoval();
 
-    if (hasRemovedSymbols) {
-      try {
-        // Wait for all removal animations
-        await completer.future;
-
-        // Drop symbols
-        await dropSymbolsAfterRemoval();
-
-        // Check for new combinations
-        var newWinningPositions = findWinningPositions();
-        if (hasWinningCombinations(newWinningPositions)) {
-          await removeWinningSymbols(newWinningPositions);
-        }
-      } catch (e) {
-        print('Error in removeWinningSymbols: $e');
-      }
+    // Check for new combinations
+    var newWinningPositions = findWinningPositions();
+    if (hasWinningCombinations(newWinningPositions)) {
+      await removeWinningSymbols(newWinningPositions);
     }
   }
 
@@ -387,12 +336,12 @@ class SweetBillionsGame extends FlameGame with TapDetector {
   Future<void> dropSymbolsAfterRemoval() async {
     List<Future> animationFutures = [];
 
-    // Опускаємо існуючі символи
+    // Drop existing symbols
     for (var col = 0; col < gridCols; col++) {
       int emptySpot = gridRows - 1;
       while (emptySpot >= 0) {
         if (grid[emptySpot][col] == null) {
-          // Шукаємо найближчий символ зверху
+          // Look for the nearest symbol above
           int symbolAbove = emptySpot - 1;
           while (symbolAbove >= 0 && grid[symbolAbove][col] == null) {
             symbolAbove--;
@@ -406,20 +355,20 @@ class SweetBillionsGame extends FlameGame with TapDetector {
             symbol.isAnimating = true;
             symbol.animationProgress = 0.0;
             symbol.targetPosition = Vector2(
-              gridPosition.x + (col * (cellSize + spacing)),
+              gridPosition.x +
+                  (col * (cellSize + spacing)), // Removed cellSize/2
               gridPosition.y + (emptySpot * (cellSize + spacing)),
             );
 
-            animationFutures.add(Future.delayed(
-                    const Duration(milliseconds: 150)) // Зменшили затримку
-                );
+            animationFutures
+                .add(Future.delayed(const Duration(milliseconds: 150)));
           }
         }
         emptySpot--;
       }
     }
 
-    // Додаємо нові символи зверху
+    // Add new symbols from top
     for (var col = 0; col < gridCols; col++) {
       for (var row = 0; row < gridRows; row++) {
         if (grid[row][col] == null) {
@@ -429,17 +378,17 @@ class SweetBillionsGame extends FlameGame with TapDetector {
       }
     }
 
-    // Чекаємо завершення всіх анімацій
+    // Wait for all animations to complete
     await Future.wait(animationFutures);
   }
 
   Future<void> addNewSymbolToColumn(int col, int row) async {
     final startPosition = Vector2(
-      gridPosition.x + (col * (cellSize + spacing)) + cellSize / 2,
+      gridPosition.x + (col * (cellSize + spacing)), // Removed cellSize/2
       gridPosition.y - cellSize,
     );
     final targetPosition = Vector2(
-      gridPosition.x + (col * (cellSize + spacing)),
+      gridPosition.x + (col * (cellSize + spacing)), // Removed cellSize/2
       gridPosition.y + (row * (cellSize + spacing)),
     );
 
@@ -453,8 +402,7 @@ class SweetBillionsGame extends FlameGame with TapDetector {
     grid[row][col] = symbol;
     add(symbol);
 
-    return Future.delayed(
-        const Duration(milliseconds: 150)); // Зменшили затримку
+    return Future.delayed(const Duration(milliseconds: 150));
   }
 
   List<List<bool>> findWinningPositions() {
@@ -463,68 +411,32 @@ class SweetBillionsGame extends FlameGame with TapDetector {
       (row) => List.generate(gridCols, (col) => false),
     );
 
-    // Горизонтальні комбінації
+    // Count the number of each symbol on screen
+    Map<Sprite, int> symbolCounts = {};
+    Map<Sprite, List<Vector2>> symbolPositions = {};
+
     for (var row = 0; row < gridRows; row++) {
-      for (var col = 0; col < gridCols - 2; col++) {
-        if (grid[row][col] != null &&
-            grid[row][col + 1] != null &&
-            grid[row][col + 2] != null) {
-          final sprite1 = grid[row][col]!.sprite;
-          final sprite2 = grid[row][col + 1]!.sprite;
-          final sprite3 = grid[row][col + 2]!.sprite;
+      for (var col = 0; col < gridCols; col++) {
+        if (grid[row][col] != null) {
+          final sprite = grid[row][col]!.sprite;
+          symbolCounts[sprite] = (symbolCounts[sprite] ?? 0) + 1;
 
-          if (sprite1 == sprite2 && sprite2 == sprite3) {
-            // Позначаємо всі символи в комбінації
-            winningPositions[row][col] = true;
-            winningPositions[row][col + 1] = true;
-            winningPositions[row][col + 2] = true;
-
-            // Перевіряємо додаткові символи справа
-            if (col + 3 < gridCols &&
-                grid[row][col + 3] != null &&
-                grid[row][col + 3]!.sprite == sprite1) {
-              winningPositions[row][col + 3] = true;
-
-              if (col + 4 < gridCols &&
-                  grid[row][col + 4] != null &&
-                  grid[row][col + 4]!.sprite == sprite1) {
-                winningPositions[row][col + 4] = true;
-              }
-            }
+          if (!symbolPositions.containsKey(sprite)) {
+            symbolPositions[sprite] = [];
           }
+          symbolPositions[sprite]!.add(Vector2(col.toDouble(), row.toDouble()));
         }
       }
     }
 
-    // Вертикальні комбінації
-    for (var col = 0; col < gridCols; col++) {
-      for (var row = 0; row < gridRows - 2; row++) {
-        if (grid[row][col] != null &&
-            grid[row + 1][col] != null &&
-            grid[row + 2][col] != null) {
-          final sprite1 = grid[row][col]!.sprite;
-          final sprite2 = grid[row + 1][col]!.sprite;
-          final sprite3 = grid[row + 2][col]!.sprite;
-
-          if (sprite1 == sprite2 && sprite2 == sprite3) {
-            // Позначаємо всі символи в комбінації
-            winningPositions[row][col] = true;
-            winningPositions[row + 1][col] = true;
-            winningPositions[row + 2][col] = true;
-
-            // Перевіряємо додаткові символи знизу
-            if (row + 3 < gridRows &&
-                grid[row + 3][col] != null &&
-                grid[row + 3][col]!.sprite == sprite1) {
-              winningPositions[row + 3][col] = true;
-
-              if (row + 4 < gridRows &&
-                  grid[row + 4][col] != null &&
-                  grid[row + 4][col]!.sprite == sprite1) {
-                winningPositions[row + 4][col] = true;
-              }
-            }
-          }
+    // Find symbols with 7 or more instances
+    for (var entry in symbolCounts.entries) {
+      if (entry.value >= 7) {
+        // Mark all positions of this symbol as winning
+        for (var position in symbolPositions[entry.key]!) {
+          int col = position.x.toInt();
+          int row = position.y.toInt();
+          winningPositions[row][col] = true;
         }
       }
     }
@@ -532,24 +444,68 @@ class SweetBillionsGame extends FlameGame with TapDetector {
     return winningPositions;
   }
 
-  double checkWins() {
-    final winningPositions = findWinningPositions();
-    int totalMatches = 0;
+  double calculateWinMultiplier(List<List<bool>> winningPositions) {
+    Map<Sprite, int> symbolCounts = {};
 
+    // Count the number of each symbol in the winning combination
     for (var row = 0; row < gridRows; row++) {
       for (var col = 0; col < gridCols; col++) {
-        if (winningPositions[row][col]) {
-          totalMatches++;
+        if (winningPositions[row][col] && grid[row][col] != null) {
+          final sprite = grid[row][col]!.sprite;
+          symbolCounts[sprite] = (symbolCounts[sprite] ?? 0) + 1;
         }
       }
     }
 
-    // Збільшені виплати для більшої частоти виграшів
-    if (totalMatches >= 8) return 200.0; // Збільшено з 100 до 200
-    if (totalMatches >= 6) return 100.0; // Збільшено з 50 до 100
-    if (totalMatches >= 4) return 40.0; // Збільшено з 20 до 40
-    if (totalMatches >= 3) return 20.0; // Збільшено з 10 до 20
-    return 0.0;
+    // If no winning symbols, return 0
+    if (symbolCounts.isEmpty) return 0;
+
+    // Find the symbol with the highest count
+    var maxEntry =
+        symbolCounts.entries.reduce((a, b) => a.value > b.value ? a : b);
+    int symbolCount = maxEntry.value;
+
+    // Find the symbol index in the symbols array
+    int symbolIndex = symbols.indexOf(maxEntry.key);
+    if (symbolIndex == -1) return 0;
+
+    // Determine multiplier based on symbol count
+    double multiplier = _getSymbolMultiplier(symbolIndex, symbolCount);
+
+    // Calculate win with bet consideration
+    double currentBet = gameState.currentBet.toDouble();
+    return multiplier * currentBet;
+  }
+
+  double _getSymbolMultiplier(int symbolIndex, int symbolCount) {
+    // Multiplier rules from the rules dialog
+    if (symbolCount < 7) return 0.0; // Minimum 7 symbols for win
+
+    // Determine multiplier based on symbol count
+    int multiplierIndex;
+    if (symbolCount >= 11) {
+      multiplierIndex = 2; // 11+ symbols
+    } else if (symbolCount >= 8) {
+      multiplierIndex = 1; // 8-10 symbols
+    } else {
+      multiplierIndex = 0; // 7 symbols
+    }
+
+    // Multipliers for each symbol [7, 8-10, 11+]
+    final multipliers = [
+      [0.5, 1.2, 1.4], // candy
+      [0.7, 1.3, 1.4], // orange
+      [0.7, 1.3, 1.5], // cherry
+      [0.7, 1.3, 1.5], // grapes
+      [1.0, 1.4, 1.8], // watermelon
+      [1.0, 1.4, 1.8], // strawberry
+      [1.2, 1.6, 2.2], // gummy
+      [1.2, 1.6, 2.2], // jelly
+      [1.2, 1.6, 2.2], // orange_candy
+      [1.2, 1.6, 2.2], // lollipop
+    ];
+
+    return multipliers[symbolIndex][multiplierIndex];
   }
 
   static Future<void> spin() async {
@@ -558,44 +514,153 @@ class SweetBillionsGame extends FlameGame with TapDetector {
 
     game.isSpinning = true;
     game.gameState.setSpinning(true);
+    // Show SPINNING... at the start of spin
+    game.gameState.setGameStatusText('SPINNING...');
     await game.gameState.deductBet();
 
-    if (game.gameState.soundEnabled) {
-      game.gameState.audioService.playSound('spin_start1');
+    // List to store Future for each column
+    List<Future> columnFutures = [];
+
+    // Start removal animation for all columns simultaneously
+    for (var col = 0; col < gridCols; col++) {
+      columnFutures.add(_animateColumnRemoval(game, col));
     }
 
-    // Remove all current symbols with animation
-    final futures = <Future>[];
-    for (var row = 0; row < gridRows; row++) {
-      for (var col = 0; col < gridCols; col++) {
-        final symbol = game.grid[row][col];
-        if (symbol != null) {
-          symbol.isRemoving = true;
-          game.grid[row][col] = null;
-          futures.add(Future.delayed(const Duration(milliseconds: 300)));
-        }
-      }
-    }
+    // Wait for all column animations to complete
+    await Future.wait(columnFutures);
 
-    await Future.wait(futures);
+    // Short pause before new symbols appear
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // Fill with new symbols
     await game.fillGridWithSymbols();
 
-    // Check for wins
-    final winningPositions = game.findWinningPositions();
-    if (game.hasWinningCombinations(winningPositions)) {
-      await game.removeWinningSymbols(winningPositions);
-    } else {
-      if (game.gameState.soundEnabled) {
-        game.gameState.audioService.playSound('lose');
+    // Check wins and process them
+    bool hasWin;
+    bool hadAnyWin = false;
+    do {
+      final winningPositions = game.findWinningPositions();
+      hasWin = game.hasWinningCombinations(winningPositions);
+
+      if (hasWin) {
+        hadAnyWin = true;
+        // Calculate win
+        double multiplier = game.calculateWinMultiplier(winningPositions);
+
+        if (game.gameState.soundEnabled) {
+          game.gameState.audioService.playSound('credits_gained');
+        }
+        await game.gameState.addWinnings(multiplier);
+        // Save win status
+        game.lastGameStatus = 'YOU WON: ${multiplier.toStringAsFixed(0)}x!';
+        game.gameState.setGameStatusText(game.lastGameStatus);
+
+        // Animate vanishing of winning symbols
+        await game.animateWinningSymbols(winningPositions);
+
+        // Drop symbols and add new ones
+        await game.dropSymbolsAfterRemoval();
+
+        // Wait for animation completion
+        await Future.delayed(const Duration(milliseconds: 300));
+      } else {
+        // Play final sound based on whether there was any win
+        if (game.gameState.soundEnabled) {
+          if (hadAnyWin) {
+            game.gameState.audioService.playSound('win');
+          } else {
+            game.gameState.audioService.playSound('lose');
+          }
+        }
+        // Save lose status
+        game.lastGameStatus = 'PLACE YOUR BETS!';
+        game.gameState.setGameStatusText(game.lastGameStatus);
       }
-      game.gameState.setGameStatusText('PLACE YOUR BETS!');
-    }
+    } while (hasWin); // Continue while there are winning combinations
 
     game.isSpinning = false;
     game.gameState.setSpinning(false);
+    // Restore last status
+    game.gameState.setGameStatusText(game.lastGameStatus);
+  }
+
+  // New private method for column removal animation
+  static Future<void> _animateColumnRemoval(
+      SweetBillionsGame game, int col) async {
+    // Add delay before starting column animation
+    await Future.delayed(Duration(milliseconds: 100 * col));
+
+    // In each column, symbols fall one by one, starting from the bottom
+    for (var row = gridRows - 1; row >= 0; row--) {
+      if (game.grid[row][col] != null) {
+        final symbol = game.grid[row][col]!;
+
+        // Set new target position (below the table)
+        symbol.targetPosition = Vector2(
+          symbol.position.x,
+          game.gridPosition.y + game.gridHeight + game.cellSize,
+        );
+
+        // Reset falling animation
+        symbol.isAnimating = true;
+        symbol.animationProgress = 0.0;
+
+        // Wait for falling animation to complete
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        // Remove symbol after falling
+        symbol.removeFromParent();
+        game.grid[row][col] = null;
+      }
+    }
   }
 
   void setGameState(GameStateProvider state) {
     gameState = state;
+  }
+
+  void handleCascade() async {
+    while (hasWinningCombinations(findWinningPositions())) {
+      final toRemove = findWinningPositions();
+      await removeWinningSymbols(toRemove); // Vanishing animation
+      await dropSymbolsAfterRemoval(); // Elements fall down
+      await dropSymbolsAfterRemoval(); // Add new ones from top
+      await Future.delayed(
+          const Duration(milliseconds: 300)); // Animation delay
+    }
+  }
+
+  Future<void> animateWinningSymbols(List<List<bool>> winningPositions) async {
+    // Find all winning symbols
+    List<SymbolComponent> winningSymbols = [];
+    for (var row = 0; row < gridRows; row++) {
+      for (var col = 0; col < gridCols; col++) {
+        if (winningPositions[row][col] && grid[row][col] != null) {
+          winningSymbols.add(grid[row][col]!);
+        }
+      }
+    }
+
+    // Start vanishing animation
+    for (var symbol in winningSymbols) {
+      symbol.startVanishingAnimation();
+    }
+
+    // Wait for vanishing animation to complete
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Remove symbols from grid and scene
+    for (var row = 0; row < gridRows; row++) {
+      for (var col = 0; col < gridCols; col++) {
+        if (winningPositions[row][col] && grid[row][col] != null) {
+          final symbol = grid[row][col]!;
+          symbol.removeFromParent();
+          grid[row][col] = null;
+        }
+      }
+    }
+
+    // Additional check that all symbols are removed
+    await Future.delayed(const Duration(milliseconds: 100));
   }
 }
