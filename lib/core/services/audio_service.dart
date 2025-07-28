@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
 import 'toast_service.dart';
 
 class AudioService {
@@ -8,6 +12,8 @@ class AudioService {
   bool _isMusicReady = false;
   bool _soundEnabled = true;
   bool _musicEnabled = true;
+  bool _wasMusicPlaying =
+      false; // Track if music was playing before app was paused
 
   // Global key for accessing context
   static GlobalKey<NavigatorState>? navigatorKey;
@@ -98,6 +104,61 @@ class AudioService {
       _showErrorToast('Error stopping background music: $e');
     }
   }
+
+  // App lifecycle methods
+  Future<void> onAppPaused() async {
+    try {
+      if (kDebugMode) {
+        print(
+            'AudioService: onAppPaused - music enabled: $_musicEnabled, player state: ${_musicPlayer.state}');
+      }
+
+      if (_musicEnabled && _musicPlayer.state == PlayerState.playing) {
+        _wasMusicPlaying = true;
+        if (kDebugMode) {
+          print(
+              'AudioService: Music was playing, setting _wasMusicPlaying to true');
+        }
+        await stopBackgroundMusic();
+      } else {
+        _wasMusicPlaying = false;
+        if (kDebugMode) {
+          print(
+              'AudioService: Music was not playing, setting _wasMusicPlaying to false');
+        }
+      }
+    } catch (e) {
+      _showErrorToast('Error in onAppPaused: $e');
+      _wasMusicPlaying = false;
+    }
+  }
+
+  Future<void> onAppResumed() async {
+    try {
+      if (kDebugMode) {
+        print(
+            'AudioService: onAppResumed - music enabled: $_musicEnabled, was playing: $_wasMusicPlaying');
+      }
+
+      // Якщо музика увімкнена в налаштуваннях — просто відновлюємо
+      if (_musicEnabled) {
+        // Маленька затримка на відновлення контексту
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        if (kDebugMode) {
+          print('AudioService: Playing background music on resume');
+        }
+        await playBackgroundMusic();
+      }
+    } catch (e) {
+      _showErrorToast('Error in onAppResumed: $e');
+    }
+  }
+
+  // Test methods for debugging
+  bool get wasMusicPlaying => _wasMusicPlaying;
+  bool get isMusicEnabled => _musicEnabled;
+  PlayerState get musicPlayerState => _musicPlayer.state;
 
   Future<void> setMusicVolume(double volume) async {
     try {

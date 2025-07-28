@@ -57,6 +57,7 @@ class _GameScreenState extends State<GameScreen>
       builder: (context, gameState, child) {
         return PopScope(
           canPop: false,
+          // ignore: deprecated_member_use
           onPopInvoked: (didPop) async {
             if (!didPop && !gameState.isSpinning) {
               Navigator.pushReplacementNamed(context, '/home');

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'core/providers/game_state_provider.dart';
+import 'core/services/app_lifecycle_service.dart';
 import 'core/services/audio_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
@@ -20,6 +21,9 @@ void main() async {
   final storageService = await StorageService.initialize();
   final audioService = await AudioService.initialize();
 
+  // Initialize app lifecycle service
+  final appLifecycleService = AppLifecycleService(audioService);
+
   runApp(
     MultiProvider(
       providers: [
@@ -30,13 +34,26 @@ void main() async {
           ),
         ),
       ],
-      child: const SweetBillionsApp(),
+      child: SweetBillionsApp(appLifecycleService: appLifecycleService),
     ),
   );
 }
 
-class SweetBillionsApp extends StatelessWidget {
-  const SweetBillionsApp({super.key});
+class SweetBillionsApp extends StatefulWidget {
+  final AppLifecycleService appLifecycleService;
+
+  const SweetBillionsApp({super.key, required this.appLifecycleService});
+
+  @override
+  State<SweetBillionsApp> createState() => _SweetBillionsAppState();
+}
+
+class _SweetBillionsAppState extends State<SweetBillionsApp> {
+  @override
+  void dispose() {
+    widget.appLifecycleService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

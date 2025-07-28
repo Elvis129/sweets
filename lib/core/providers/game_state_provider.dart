@@ -152,6 +152,7 @@ class GameStateProvider extends ChangeNotifier {
   Future<void> deductBet() async {
     if (_credits >= _currentBet) {
       _credits -= _currentBet;
+      await storageService.setCredits(_credits);
       notifyListeners();
     }
   }
@@ -160,6 +161,7 @@ class GameStateProvider extends ChangeNotifier {
   Future<void> addWinnings(double multiplier) async {
     final winAmount = _currentBet * multiplier;
     _credits += winAmount;
+    await storageService.setCredits(_credits);
     setGameStatusText('YOU WON: ${multiplier.toStringAsFixed(0)}x!');
     notifyListeners();
   }

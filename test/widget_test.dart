@@ -7,14 +7,24 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:sweet_billions/core/services/app_lifecycle_service.dart';
+import 'package:sweet_billions/core/services/audio_service.dart';
 import 'package:sweet_billions/main.dart';
 
 void main() {
   testWidgets('Game loads with title', (WidgetTester tester) async {
+    // Create a mock audio service for testing
+    final audioService = await AudioService.initialize();
+    final appLifecycleService = AppLifecycleService(audioService);
+
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const SweetBillionsApp());
+    await tester
+        .pumpWidget(SweetBillionsApp(appLifecycleService: appLifecycleService));
 
     // Verify that the game title appears
     expect(find.text('Sweet Billions'), findsOneWidget);
+
+    // Clean up
+    appLifecycleService.dispose();
   });
 }
